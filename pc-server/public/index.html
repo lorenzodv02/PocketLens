@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PocketLens Receiver</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: #080d1a;
+      color: #f2f5ff;
+      --muted: #9ba8c8;
+      --accent: #52d5e8;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; }
+    .shell { width: min(1360px, 100%); margin: 0 auto; padding: 26px; }
+    header { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+    .mark {
+      display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px;
+      color: #07121e; font-weight: 800; background: linear-gradient(140deg, #7b82ff, var(--accent));
+    }
+    h1 { font-size: 19px; margin: 0; letter-spacing: .02em; }
+    .sub { margin-top: 3px; color: var(--muted); font-size: 13px; }
+    .workspace { display: grid; grid-template-columns: minmax(0, 1fr) 300px; align-items: start; gap: 20px; }
+    .stage {
+      position: relative; overflow: hidden; aspect-ratio: 16 / 9; border-radius: 20px;
+      background: radial-gradient(ellipse at center, #17233e, #080d1a 70%);
+      border: 1px solid #263451; box-shadow: 0 24px 90px #0008;
+    }
+    .stage img { width: 100%; height: 100%; display: block; object-fit: contain; }
+    .empty { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: 9px; pointer-events: none; }
+    .empty strong { font-size: clamp(17px, 3vw, 25px); }
+    .empty span, footer, .status { color: var(--muted); font-size: 13px; }
+    .status { display: flex; align-items: center; gap: 8px; margin-top: 15px; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #8490ab; }
+    .dot.live { background: #48df9a; box-shadow: 0 0 13px #48df9a99; }
+    .details { display: none; padding: 18px; border-radius: 18px; background: #111a2d; border: 1px solid #263451; }
+    body.desktop .details { display: block; }
+    .details h2 { margin: 0 0 6px; font-size: 16px; }
+    .details p { margin: 0 0 16px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .item { padding: 12px 0; border-top: 1px solid #263451; }
+    .label { margin-bottom: 6px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+    .value { overflow-wrap: anywhere; font: 12px/1.5 ui-monospace, Consolas, monospace; }
+    .copy { width: 100%; margin-top: 8px; padding: 8px 10px; color: #eef1ff; background: #253252; border: 1px solid #354568; border-radius: 8px; font: inherit; font-size: 12px; cursor: pointer; }
+    .copy:hover { background: #314169; }
+    .tip { margin-top: 14px; padding: 12px; border-radius: 10px; background: #0d2130; color: #c5d9e8; font-size: 12px; line-height: 1.55; }
+    .warning { margin-top: 12px; padding: 12px; border-radius: 10px; background: #382416; color: #f4d6b3; font-size: 12px; line-height: 1.55; }
+    .camera-control { display: none; margin-top: 14px; padding: 12px; border-radius: 10px; background: #171f38; border: 1px solid #334367; }
+    body.desktop .camera-control { display: block; }
+    .camera-control p { margin: 6px 0 10px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .camera-control button { width: 100%; margin-top: 7px; padding: 9px 10px; color: #eef1ff; background: #354477; border: 1px solid #5266a0; border-radius: 8px; font: inherit; font-size: 12px; cursor: pointer; }
+    .camera-control button:disabled { opacity: .55; cursor: wait; }
+    .camera-state { color: #c5d9e8; font-size: 12px; line-height: 1.5; }
+    footer { margin-top: 20px; line-height: 1.6; }
+    @media (max-width: 820px) {
+      .workspace { grid-template-columns: 1fr; }
+      .shell { padding: 18px; }
+    }
+    body.obs { display: block; min-height: 100vh; background: #000; }
+    body.obs .shell { width: 100%; height: 100vh; padding: 0; }
+    body.obs header, body.obs footer, body.obs .status, body.obs .details { display: none; }
+    body.obs .workspace { display: block; }
+    body.obs .stage { width: 100%; height: 100%; aspect-ratio: auto; border: 0; border-radius: 0; box-shadow: none; }
+    body.obs .empty strong { font-size: 26px; }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div class="mark">P</div>
+      <div><h1>PocketLens</h1><div class="sub" id="subtitle">Private phone camera receiver</div></div>
+    </header>
+    <div class="workspace">
+      <div>
+        <section class="stage">
+          <img id="camera" alt="Phone camera stream">
+          <div class="empty" id="empty">
+            <strong>Waiting for your phone</strong>
+            <span>Open PocketLens on Android and tap Connect.</span>
+          </div>
+        </section>
+        <div class="status"><span class="dot" id="dot"></span><span id="status">Not connected</span><span id="resolution"></span></div>
+      </div>
+      <aside class="details">
+        <h2>Connect your phone</h2>
+        <p>Put your phone and PC on the same Wi-Fi network. In PocketLens, tap Find PC and select this computer.</p>
+        <div class="item">
+          <div class="label">PC address</div>
+          <div class="value" id="pc-address">Finding address…</div>
+          <button class="copy" data-copy="pc-address">Copy address</button>
+        </div>
+        <section class="camera-control">
+          <b>Windows virtual camera</b>
+          <p>Install once. After that, PocketLens starts the camera host automatically when the PC app opens. Choose <b>PocketLens Camera</b> in Windows Camera, Teams, Discord, or OBS.</p>
+          <div class="camera-state" id="camera-state" role="status" aria-live="polite">Checking virtual camera…</div>
+          <button id="camera-install" hidden>Install virtual camera (administrator)</button>
+          <button id="camera-start" hidden>Start virtual camera</button>
+          <button id="camera-stop" hidden>Stop virtual camera</button>
+        </section>
+        <div class="item">
+          <div class="label">Optional OBS Browser Source URL</div>
+          <div class="value" id="obs-url"></div>
+          <button class="copy" data-copy="obs-url">Copy OBS URL</button>
+        </div>
+        <div class="warning"><b>Local network only</b><br>To remove pairing codes, this receiver accepts connections from devices on the same network. Anyone on that network can connect to or view the camera. Use a trusted private Wi-Fi network.</div>
+      </aside>
+    </div>
+    <footer>The virtual camera runs for the current Windows sign-in session. Keep PocketLens open while another app is using the camera.</footer>
+  </main>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const obsMode = location.pathname === "/obs";
+    const desktopMode = params.get("desktop") === "1";
+    if (obsMode) document.body.classList.add("obs");
+    if (desktopMode) {
+      document.body.classList.add("desktop");
+      document.getElementById("subtitle").textContent = "PC webcam receiver";
+      document.getElementById("obs-url").textContent = `${location.origin}/obs`;
+      try {
+        const addresses = JSON.parse(params.get("addresses") || "[]");
+        document.getElementById("pc-address").textContent =
+          addresses.length ? addresses.join("\n") : "No Wi-Fi address found";
+      } catch {
+        document.getElementById("pc-address").textContent = "Could not read PC addresses";
+      }
+      document.querySelectorAll(".copy").forEach((button) => {
+        button.addEventListener("click", async () => {
+          const value = button.dataset.copy === "pc-address"
+            ? document.getElementById("pc-address").textContent.split("\n")[0]
+            : document.getElementById(button.dataset.copy).textContent;
+          try {
+            await navigator.clipboard.writeText(value);
+            const original = button.textContent;
+            button.textContent = "Copied";
+            setTimeout(() => { button.textContent = original; }, 1200);
+          } catch {
+            button.textContent = "Copy unavailable";
+          }
+        });
+      });
+      initializeVirtualCameraControls();
+    }
+
+    const image = document.getElementById("camera");
+    image.src = "/stream.mjpg";
+    image.addEventListener("load", () => {
+      document.getElementById("resolution").textContent =
+        image.naturalWidth && image.naturalHeight ? `${image.naturalWidth}×${image.naturalHeight}` : "";
+    });
+
+    async function updateStatus() {
+      try {
+        const response = await fetch("/status", { cache: "no-store" });
+        const data = await response.json();
+        const live = data.connected && data.hasFrame && data.lastFrameAgeMs < 3000;
+        document.getElementById("dot").classList.toggle("live", live);
+        document.getElementById("status").textContent = live
+          ? "Camera live"
+          : data.connected ? "Phone connected — waiting for video" : "Waiting for phone";
+        document.getElementById("empty").style.display = data.hasFrame ? "none" : "grid";
+      } catch {
+        document.getElementById("status").textContent = "Receiver unavailable";
+      }
+    }
+
+    async function initializeVirtualCameraControls() {
+      if (!window.pocketLensCamera) {
+        document.getElementById("camera-state").textContent =
+          "Virtual camera controls are available in the PocketLens desktop app.";
+        return;
+      }
+
+      const installButton = document.getElementById("camera-install");
+      const startButton = document.getElementById("camera-start");
+      const stopButton = document.getElementById("camera-stop");
+      const state = document.getElementById("camera-state");
+
+      async function refresh() {
+        try {
+          const camera = await window.pocketLensCamera.getStatus();
+          installButton.hidden = (camera.installed && !camera.updateAvailable) || camera.installInProgress;
+          installButton.textContent = camera.updateAvailable
+            ? "Update virtual camera (administrator)"
+            : "Install virtual camera (administrator)";
+          startButton.hidden = !camera.installed || camera.running;
+          stopButton.hidden = !camera.running;
+          state.textContent = camera.installInProgress
+            ? "Installing camera support — approve the administrator prompt."
+            : camera.updateAvailable
+              ? "A camera update is ready. Install it to enable automatic startup."
+            : camera.running
+              ? "Camera host is running. Select PocketLens Camera in your video app."
+              : camera.installed
+                ? "Installed. The camera host starts automatically when PocketLens opens."
+                : camera.error || "One-time installation is required. Approve the administrator prompt.";
+        } catch (error) {
+          state.textContent = `Could not check virtual camera: ${error.message}`;
+        }
+      }
+
+      installButton.addEventListener("click", async () => {
+        installButton.disabled = true;
+        state.textContent = "Starting administrator installation…";
+        try {
+          await window.pocketLensCamera.install();
+        } catch (error) {
+          state.textContent = error.message;
+        } finally {
+          installButton.disabled = false;
+          await refresh();
+        }
+      });
+      startButton.addEventListener("click", async () => {
+        startButton.disabled = true;
+        state.textContent = "Starting virtual camera…";
+        try {
+          await window.pocketLensCamera.start();
+        } catch (error) {
+          state.textContent = error.message;
+        } finally {
+          startButton.disabled = false;
+          await refresh();
+        }
+      });
+      stopButton.addEventListener("click", async () => {
+        stopButton.disabled = true;
+        state.textContent = "Stopping virtual camera…";
+        try {
+          await window.pocketLensCamera.stop();
+        } catch (error) {
+          state.textContent = error.message;
+        } finally {
+          stopButton.disabled = false;
+          await refresh();
+        }
+      });
+
+      await refresh();
+      setInterval(refresh, 1500);
+    }
+
+    updateStatus();
+    setInterval(updateStatus, 1000);
+  </script>
+</body>
+</html>

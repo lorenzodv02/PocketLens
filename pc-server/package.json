@@ -1,0 +1,58 @@
+{
+  "name": "pocketlens-pc-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PocketLens Windows desktop app and local camera receiver",
+  "main": "electron-main.js",
+  "scripts": {
+    "start": "node server.js",
+    "start:desktop": "electron .",
+    "build:exe": "electron-builder --win portable",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "electron": "^40.0.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.pocketlens.pc",
+    "productName": "PocketLens",
+    "asar": true,
+    "files": [
+      "electron-main.js",
+      "preload.js",
+      "server.js",
+      "public/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "virtual-camera",
+        "to": "virtual-camera",
+        "filter": [
+          "PocketLensVirtualCamera.exe",
+          "PocketLensVirtualCameraSource.dll",
+          "Install-PocketLensVirtualCamera.ps1",
+          "LICENSE"
+        ]
+      }
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "PocketLens.exe"
+    }
+  },
+  "allowScripts": {
+    "electron@40.10.6": true
+  }
+}

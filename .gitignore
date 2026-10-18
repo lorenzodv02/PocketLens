@@ -1,0 +1,30 @@
+# Android/Gradle outputs
+.gradle/
+.kotlin/
+**/build/
+local.properties
+*.iml
+/android/PocketLens-debug.apk
+
+# Node/Electron dependencies and generated packages
+**/node_modules/
+pc-server/dist/
+pc-server/dist-*/
+*.log
+.vs/
+
+# Visual Studio generated files and restored NuGet packages
+**/x64/
+**/Win32/
+**/ARM64/
+/VCamSample/VCamSample.exe
+/VCamSample/VCamSampleSource.dll
+VCamSample/source/VCamSample-main/packages/
+*.user
+*.suo
+*.VC.db
+*.VC.VC.opendb
+
+# Local-only unrelated inputs
+/*.apk
+/nuovo 17.txt
